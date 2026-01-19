@@ -39,3 +39,7 @@ Planned next steps include:
 - adding a reflection mode to evaluate past decisions
 - improving scoring logic
 - optionally integrating AI in later stages
+
+### Development notes
+This project is intentionally developed in small steps.
+Early versions focus on clarity and reflection rather than technical complexity.

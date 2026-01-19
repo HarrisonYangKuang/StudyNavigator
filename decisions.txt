@@ -20,3 +20,9 @@ Reasons:
 - Time/effort cost is rated 4/5.
 - Risk level is rated 3/5, reversibility is 4/5.
 Risk note: Make a backup plan before committing.
+
+[2026-01-19 18:49:01] REFLECTION
+Past decision: i didn't review History test
+Outcome: Fail
+Regret: yes
+Recommendation helpful: yes
