@@ -6,3 +6,17 @@ Decision: 喵喵喵
 Options: Join or skip
 Goal: Improve experience
 Risk: Time pressure
+
+[2026-01-19 18:43:25]
+Decision: Should I join an academic competition?
+Options: Join the competition, Not join
+Goal: Improve experience and skills
+Concern: Time pressure with schoolwork
+Ratings: impact=4, cost=4, risk=3, reversible=4
+Score: 15/100
+Recommendation: Lean toward 'Not join' or delay the decision.
+Reasons:
+- Impact on your goal is rated 4/5.
+- Time/effort cost is rated 4/5.
+- Risk level is rated 3/5, reversibility is 4/5.
+Risk note: Make a backup plan before committing.
