@@ -26,3 +26,9 @@ Past decision: i didn't review History test
 Outcome: Fail
 Regret: yes
 Recommendation helpful: yes
+
+[2026-01-20 19:43:47] REFLECTION
+Past decision: Sleep
+Outcome: Fail
+Regret: yes
+Recommendation helpful: yes
