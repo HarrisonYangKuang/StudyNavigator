@@ -32,3 +32,27 @@ Past decision: Sleep
 Outcome: Fail
 Regret: yes
 Recommendation helpful: yes
+
+[2026-01-20 20:05:43] REFLECTION
+Past decision: 1
+Outcome: 1
+Regret: 1
+Recommendation helpful: 1
+
+[2026-01-20 20:06:29] REFLECTION
+Past decision: 2
+Outcome: 2
+Regret: 2
+Recommendation helpful: 2
+
+[2026-01-20 20:13:10] REFLECTION
+Past decision: 2
+Outcome: 2
+Regret: 2
+Recommendation helpful: 2
+
+[2026-01-20 20:17:15] REFLECTION
+Past decision: 2
+Outcome: 3
+Regret: yes
+Recommendation helpful: yes

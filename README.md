@@ -1,45 +1,38 @@
 # StudyNavigator
 
-StudyNavigator is a small personal decision-making tool built to help me think more clearly before making study-related choices.
+StudyNavigator is a simple command-line tool that helps users make and review decisions in a structured way.
 
-## What is this?
-This project records decisions in a structured way and gives a simple recommendation based on self-rated factors like impact, cost, risk, and reversibility.
+It is designed for students who want to slow down their thinking, compare options clearly, and reflect on past choices.
 
-It is not meant to replace thinking.  
-It is meant to slow down impulsive decisions.
+---
 
-## Why I built it
-I often make study decisions quickly (competitions, time allocation, projects) and later realize I did not fully think through the trade-offs.
+## Features
 
-I built this tool to force myself to:
-- clearly state my goal
-- list my options
-- think about risks before committing
+- Create a new decision with clear goals and options
+- Rate impact, cost, risk, and reversibility
+- Get a simple recommendation based on weighted scores
+- Reflect on past decisions and record outcomes
+- Input validation to prevent mistakes
+- Runs continuously in the terminal (no restart needed)
 
-## How it works (current version)
-The current version is rule-based.
+---
 
-For each decision, the program:
-1. asks for the decision, options, goal, and concern
-2. asks the user to rate impact, cost, risk, and reversibility (1–5)
-3. calculates a simple score (0–100)
-4. outputs a recommendation and saves the result locally
+## How It Works
 
-This version focuses on transparency and explainability instead of complexity.
+When creating a new decision, the program asks you to rate:
 
-## Example use
-Example decisions in the log file are for testing purposes only.
+- Impact on your goal
+- Time or effort cost
+- Risk level
+- How reversible the decision is
 
-The tool is intended for everyday academic decisions, such as whether to join an activity or how to allocate time.
+Based on these inputs, StudyNavigator calculates a score and gives a recommendation.
 
-## Project status
-This project is under active development.
+You can also reflect on past decisions to see whether your original choice and recommendation were helpful.
 
-Planned next steps include:
-- adding a reflection mode to evaluate past decisions
-- improving scoring logic
-- optionally integrating AI in later stages
+---
 
-### Development notes
-This project is intentionally developed in small steps.
-Early versions focus on clarity and reflection rather than technical complexity.
+## How to Run
+
+```bash
+python main.py
