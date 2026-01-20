@@ -56,3 +56,27 @@ Past decision: 2
 Outcome: 3
 Regret: yes
 Recommendation helpful: yes
+
+[2026-01-20 20:45:50] NEW DECISION
+Decision: 2
+Options: 1
+Goal: 1
+Concern: 1
+Ratings: impact=1, cost=1, risk=1, reversible=1
+Score: 0/100
+Recommendation: Lean toward not doing it or delaying.
+
+[2026-01-20 20:50:54] NEW DECISION
+Decision: 1
+Options: 1
+Goal: 1
+Concern: 1
+Ratings: impact=1, cost=1, risk=2, reversible=3
+Score: 5/100
+Recommendation: Lean toward not doing it or delaying.
+Breakdown:
+- + Reversibility (3/5) : 30 pts
+- - Risk level (2/5) : 30 pts
+- + Impact on goal (1/5) : 20 pts
+- - Time or effort cost (1/5) : 15 pts
+Biggest factor: Reversibility (30 pts)
