@@ -1,4 +1,5 @@
 import os
+import sys
 from datetime import datetime
 
 WEIGHTS = {
@@ -10,7 +11,19 @@ WEIGHTS = {
 
 
 def clear():
-    os.system("cls" if os.name == "nt" else "clear")
+    # Avoid TERM errors in IDE run consoles (not a real terminal)
+    if not sys.stdout.isatty():
+        print("\n" * 40)
+        return
+
+    if os.name == "nt":
+        os.system("cls")
+    else:
+        # Only clear when TERM exists
+        if os.environ.get("TERM"):
+            os.system("clear")
+        else:
+            print("\n" * 40)
 
 
 def clamp(n, lo=0, hi=100):
@@ -62,19 +75,144 @@ def ask_choice(prompt, choices):
         print(f"Please type one of {', '.join(sorted(choices))}.")
 
 
+def ask_int(prompt, lo, hi, default=None):
+    while True:
+        raw = input(prompt).strip()
+        if raw == "" and default is not None:
+            return default
+        if raw.isdigit():
+            n = int(raw)
+            if lo <= n <= hi:
+                return n
+        if default is None:
+            print(f"Please type a number from {lo} to {hi}.")
+        else:
+            print(f"Please type a number from {lo} to {hi} (or press Enter for {default}).")
+
+
+def pause():
+    input("\nPress Enter to continue...")
+
+
 def save(text):
     with open("decisions.txt", "a", encoding="utf-8") as f:
         f.write(text)
 
 
+def load_entries(path="decisions.txt"):
+    if not os.path.exists(path):
+        return []
+    with open(path, "r", encoding="utf-8") as f:
+        data = f.read().strip()
+    if not data:
+        return []
+
+    # Entries are written starting with a line like: [YYYY-MM-DD ...] NEW DECISION / REFLECTION
+    parts = data.split("\n[")
+    entries = []
+    for i, p in enumerate(parts):
+        if i == 0:
+            chunk = p
+        else:
+            chunk = "[" + p
+        entries.append(chunk.strip())
+    return entries
+
+
+def summarize_entry(entry):
+    # Return a short one-line summary for list/search results
+    first_line = entry.splitlines()[0].strip()
+
+    label = "LOG"
+    title = ""
+
+    if "NEW DECISION" in entry:
+        label = "DECISION"
+        for line in entry.splitlines():
+            if line.startswith("Decision:"):
+                title = line.replace("Decision:", "").strip()
+                break
+    elif "REFLECTION" in entry:
+        label = "REFLECTION"
+        for line in entry.splitlines():
+            if line.startswith("Past decision:"):
+                title = line.replace("Past decision:", "").strip()
+                break
+
+    if title:
+        return f"{first_line}  {label}  {title}"
+    return f"{first_line}  {label}"
+
+
+def browse_history():
+    while True:
+        clear()
+        print("=== History (decisions.txt) ===")
+        print("(1) List recent")
+        print("(2) Search keyword")
+        print("(0) Back")
+
+        action = ask_choice("Choose: ", {"0", "1", "2"})
+        if action == "0":
+            return
+
+        entries = load_entries()
+        if not entries:
+            print("\nNo history found yet. Make a decision first.")
+            pause()
+            continue
+
+        if action == "1":
+            n = ask_int("How many recent entries? (Enter=5): ", 1, 50, default=5)
+            shown = entries[-n:]
+
+            print("\nRecent entries")
+            for idx, e in enumerate(reversed(shown), start=1):
+                print(f"{idx}. {summarize_entry(e)}")
+
+            choice = input("\nType a number to view, or press Enter to go back: ").strip()
+            if choice.isdigit():
+                k = int(choice)
+                if 1 <= k <= len(shown):
+                    clear()
+                    selected = list(reversed(shown))[k - 1]
+                    print(selected)
+                    pause()
+
+        if action == "2":
+            kw = input("Keyword: ").strip()
+            if not kw:
+                continue
+            kw_low = kw.lower()
+            matches = [e for e in entries if kw_low in e.lower()]
+
+            if not matches:
+                print("\nNo matches.")
+                pause()
+                continue
+
+            print("\nMatches")
+            for idx, e in enumerate(matches, start=1):
+                print(f"{idx}. {summarize_entry(e)}")
+
+            choice = input("\nType a number to view, or press Enter to go back: ").strip()
+            if choice.isdigit():
+                k = int(choice)
+                if 1 <= k <= len(matches):
+                    clear()
+                    print(matches[k - 1])
+                    pause()
+
+
 def main():
     while True:
+        clear()
         print("=== StudyNavigator v0.4 (with reflection) ===")
 
         timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         mode = ask_choice(
-            "Choose mode: (1) New  (2) Reflect  (0) Exit: ",
-            {"0", "1", "2"},
+            "Choose mode: (1) New  (2) Reflect  (3) Browse  (0) Exit: ",
+            {"0", "1", "2", "3"},
         )
 
         if mode == "0":
@@ -88,10 +226,10 @@ def main():
             concern = input("Main concern at the time? ").strip()
 
             print("\nRate from 1 (low) to 5 (high)")
-            impact = int(input("Impact on goal: ") or 3)
-            cost = int(input("Time/effort cost: ") or 3)
-            risk = int(input("Risk level: ") or 3)
-            reversible = int(input("Reversibility: ") or 3)
+            impact = ask_int("Impact on goal (1-5, Enter=3): ", 1, 5, default=3)
+            cost = ask_int("Time/effort cost (1-5, Enter=3): ", 1, 5, default=3)
+            risk = ask_int("Risk level (1-5, Enter=3): ", 1, 5, default=3)
+            reversible = ask_int("Reversibility (1-5, Enter=3): ", 1, 5, default=3)
 
             values = {
                 "impact": impact,
@@ -141,6 +279,7 @@ def main():
 
             save(record)
             print("Saved decision and recommendation.")
+            pause()
 
         elif mode == "2":
             past = input("Briefly describe the past decision: ").strip()
@@ -163,9 +302,14 @@ def main():
 
             save(reflection)
             print("Reflection saved.")
+            pause()
+
+        elif mode == "3":
+            browse_history()
 
         else:
             print("Invalid option.")
+            pause()
 
 
 if __name__ == "__main__":

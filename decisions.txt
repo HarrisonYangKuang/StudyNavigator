@@ -80,3 +80,33 @@ Breakdown:
 - + Impact on goal (1/5) : 20 pts
 - - Time or effort cost (1/5) : 15 pts
 Biggest factor: Reversibility (30 pts)
+
+[2026-01-20 20:56:32] NEW DECISION
+Decision: 2
+Options: 2
+Goal: 2
+Concern: 2
+Ratings: impact=4, cost=3, risk=3, reversible=4
+Score: 30/100
+Recommendation: Lean toward not doing it or delaying.
+Breakdown:
+- + Impact on goal (4/5) : 80 pts
+- - Time or effort cost (3/5) : 45 pts
+- - Risk level (3/5) : 45 pts
+- + Reversibility (4/5) : 40 pts
+Biggest factor: Impact on goal (80 pts)
+
+[2026-01-20 21:00:35] NEW DECISION
+Decision: 2
+Options: 2
+Goal: 2
+Concern: 2
+Ratings: impact=4, cost=4, risk=3, reversible=3
+Score: 5/100
+Recommendation: Lean toward not doing it or delaying.
+Breakdown:
+- + Impact on goal (4/5) : 80 pts
+- - Time or effort cost (4/5) : 60 pts
+- - Risk level (3/5) : 45 pts
+- + Reversibility (3/5) : 30 pts
+Biggest factor: Impact on goal (80 pts)
