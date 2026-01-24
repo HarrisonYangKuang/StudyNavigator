@@ -110,3 +110,22 @@ Breakdown:
 - - Risk level (3/5) : 45 pts
 - + Reversibility (3/5) : 30 pts
 Biggest factor: Impact on goal (80 pts)
+
+[2026-01-22 21:36:53] NEW DECISION
+Task A: 2
+Task B: 3
+Time left: long
+Energy: high
+Score A: 40.0/100
+Score B: 41.0/100
+Recommendation: Choose Task B (3).
+
+[2026-01-22 21:40:57] NEW DECISION
+Task A: History review
+Task B: English reading
+Time left: medium
+Energy: medium
+Scoring mode: Manual
+Score A: 56.0/100
+Score B: 40.0/100
+Recommendation: Choose Task A (History review).

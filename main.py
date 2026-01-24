@@ -1,12 +1,14 @@
 import os
 import sys
 from datetime import datetime
+import json
+import urllib.request
 
 WEIGHTS = {
-    "impact": 20,
-    "reversible": 10,
-    "cost": -15,
-    "risk": -15,
+    "urgency": 0.30,
+    "importance": 0.20,
+    "long_term_value": 0.35,
+    "effort": -0.15,
 }
 
 
@@ -33,16 +35,16 @@ def clamp(n, lo=0, hi=100):
 def compute_contrib(values):
     contrib = {}
     for k, w in WEIGHTS.items():
-        contrib[k] = w * values[k]
+        contrib[k] = w * values[k] * 20
     return contrib
 
 
 def build_breakdown(contrib, values):
     name_map = {
-        "impact": "Impact on goal",
-        "reversible": "Reversibility",
-        "cost": "Time or effort cost",
-        "risk": "Risk level",
+        "urgency": "Urgency",
+        "importance": "Importance",
+        "long_term_value": "Long-term value",
+        "effort": "Effort cost",
     }
 
     lines = []
@@ -50,10 +52,10 @@ def build_breakdown(contrib, values):
 
     for k, pts in items:
         sign = "+" if pts >= 0 else "-"
-        lines.append(f"{sign} {name_map[k]} ({values[k]}/5) : {abs(pts)} pts")
+        lines.append(f"{sign} {name_map[k]} ({values[k]}/5): {abs(int(pts))} pts")
 
     top_key, top_pts = items[0]
-    top_line = f"Biggest factor: {name_map[top_key]} ({abs(top_pts)} pts)"
+    top_line = f"Biggest factor: {name_map[top_key]} ({abs(int(top_pts))} pts)"
     return lines, top_line
 
 
@@ -204,6 +206,161 @@ def browse_history():
                     pause()
 
 
+
+def extract_output_text(resp_json):
+    """
+    Responses API returns a list of output items. We extract the first output_text.
+    """
+    try:
+        for item in resp_json.get("output", []):
+            if item.get("type") == "message":
+                for c in item.get("content", []):
+                    if c.get("type") == "output_text":
+                        return c.get("text", "")
+    except Exception:
+        return ""
+    return ""
+
+def ai_score_tasks(task_a, task_b, time_left, energy):
+    """
+    Uses OpenAI Responses API to score both tasks. Requires OPENAI_API_KEY in env.
+    Returns (values_a, values_b, reasons_a, reasons_b) or None on failure.
+    """
+    api_key = os.environ.get("OPENAI_API_KEY")
+    if not api_key:
+        return None
+
+    schema = {
+        "type": "object",
+        "additionalProperties": False,
+        "required": ["taskA", "taskB"],
+        "properties": {
+            "taskA": {
+                "type": "object",
+                "additionalProperties": False,
+                "required": ["urgency", "importance", "long_term_value", "effort", "reasons"],
+                "properties": {
+                    "urgency": {"type": "integer", "minimum": 1, "maximum": 5},
+                    "importance": {"type": "integer", "minimum": 1, "maximum": 5},
+                    "long_term_value": {"type": "integer", "minimum": 1, "maximum": 5},
+                    "effort": {"type": "integer", "minimum": 1, "maximum": 5},
+                    "reasons": {
+                        "type": "object",
+                        "additionalProperties": False,
+                        "required": ["urgency", "importance", "long_term_value", "effort"],
+                        "properties": {
+                            "urgency": {"type": "string"},
+                            "importance": {"type": "string"},
+                            "long_term_value": {"type": "string"},
+                            "effort": {"type": "string"},
+                        },
+                    },
+                },
+            },
+            "taskB": {
+                "type": "object",
+                "additionalProperties": False,
+                "required": ["urgency", "importance", "long_term_value", "effort", "reasons"],
+                "properties": {
+                    "urgency": {"type": "integer", "minimum": 1, "maximum": 5},
+                    "importance": {"type": "integer", "minimum": 1, "maximum": 5},
+                    "long_term_value": {"type": "integer", "minimum": 1, "maximum": 5},
+                    "effort": {"type": "integer", "minimum": 1, "maximum": 5},
+                    "reasons": {
+                        "type": "object",
+                        "additionalProperties": False,
+                        "required": ["urgency", "importance", "long_term_value", "effort"],
+                        "properties": {
+                            "urgency": {"type": "string"},
+                            "importance": {"type": "string"},
+                            "long_term_value": {"type": "string"},
+                            "effort": {"type": "string"},
+                        },
+                    },
+                },
+            },
+        },
+    }
+
+    system_msg = (
+        "You are a strict task-scoring engine for students. "
+        "Score each task from 1-5 on: urgency, importance, long_term_value, effort. "
+        "Use the user's time_left and energy as context. "
+        "Be realistic, not optimistic. Keep each reason short (<= 12 words)."
+    )
+
+    user_msg = (
+        f"Task A: {task_a}\n"
+        f"Task B: {task_b}\n"
+        f"time_left: {time_left}\n"
+        f"energy: {energy}\n"
+        "Return scores and short reasons."
+    )
+
+    payload = {
+        "model": "gpt-4o-mini",
+        "input": [
+            {"role": "system", "content": system_msg},
+            {"role": "user", "content": user_msg},
+        ],
+        "text": {
+            "format": {
+                "type": "json_schema",
+                "name": "task_scores",
+                "strict": True,
+                "schema": schema,
+            }
+        },
+        "temperature": 0.2,
+    }
+
+    req = urllib.request.Request(
+        "https://api.openai.com/v1/responses",
+        data=json.dumps(payload).encode("utf-8"),
+        headers={
+            "Content-Type": "application/json",
+            "Authorization": f"Bearer {api_key}",
+        },
+        method="POST",
+    )
+
+    try:
+        with urllib.request.urlopen(req, timeout=25) as resp:
+            raw = resp.read().decode("utf-8")
+        resp_json = json.loads(raw)
+
+        text_out = extract_output_text(resp_json).strip()
+        data = json.loads(text_out)
+
+        a = data["taskA"]
+        b = data["taskB"]
+
+        values_a = {
+            "urgency": int(a["urgency"]),
+            "importance": int(a["importance"]),
+            "long_term_value": int(a["long_term_value"]),
+            "effort": int(a["effort"]),
+        }
+        values_b = {
+            "urgency": int(b["urgency"]),
+            "importance": int(b["importance"]),
+            "long_term_value": int(b["long_term_value"]),
+            "effort": int(b["effort"]),
+        }
+
+        reasons_a = a.get("reasons", {})
+        reasons_b = b.get("reasons", {})
+
+        # final sanity clamp
+        for k in values_a:
+            values_a[k] = max(1, min(5, values_a[k]))
+            values_b[k] = max(1, min(5, values_b[k]))
+
+        return values_a, values_b, reasons_a, reasons_b
+    except Exception:
+        return None
+
+
 def main():
     while True:
         clear()
@@ -220,61 +377,104 @@ def main():
             break
 
         if mode == "1":
-            decision = input("What was the decision? ").strip()
-            options = input("What options did you have? ").strip()
-            goal = input("What was your goal? ").strip()
-            concern = input("Main concern at the time? ").strip()
+            task_a = input("Task A: ").strip()
+            task_b = input("Task B: ").strip()
+            time_left = ask_choice("Time left (short/medium/long): ", {"short", "medium", "long"})
+            energy = ask_choice("Energy level (low/medium/high): ", {"low", "medium", "high"})
 
-            print("\nRate from 1 (low) to 5 (high)")
-            impact = ask_int("Impact on goal (1-5, Enter=3): ", 1, 5, default=3)
-            cost = ask_int("Time/effort cost (1-5, Enter=3): ", 1, 5, default=3)
-            risk = ask_int("Risk level (1-5, Enter=3): ", 1, 5, default=3)
-            reversible = ask_int("Reversibility (1-5, Enter=3): ", 1, 5, default=3)
+            use_ai = ask_yesno("Use AI to auto-score tasks? (yes/no): ")
+            ai_result = None
+            if use_ai == "yes":
+                ai_result = ai_score_tasks(task_a, task_b, time_left, energy)
+                if ai_result is None:
+                    print("AI scoring failed (missing key or API error). Falling back to manual ratings.")
+                    use_ai = "no"
 
-            values = {
-                "impact": impact,
-                "cost": cost,
-                "risk": risk,
-                "reversible": reversible,
-            }
+            if use_ai == "no":
+                print("\nRate each task from 1 (low) to 5 (high)")
+                print("Task A ratings")
+                a_urgency = ask_int("Urgency (1-5, Enter=3): ", 1, 5, default=3)
+                a_importance = ask_int("Importance (1-5, Enter=3): ", 1, 5, default=3)
+                a_value = ask_int("Long-term value (1-5, Enter=3): ", 1, 5, default=3)
+                a_effort = ask_int("Effort cost (1-5, Enter=3): ", 1, 5, default=3)
 
-            contrib = compute_contrib(values)
-            raw_score = sum(contrib.values())
-            score = clamp(raw_score)
+                print("\nTask B ratings")
+                b_urgency = ask_int("Urgency (1-5, Enter=3): ", 1, 5, default=3)
+                b_importance = ask_int("Importance (1-5, Enter=3): ", 1, 5, default=3)
+                b_value = ask_int("Long-term value (1-5, Enter=3): ", 1, 5, default=3)
+                b_effort = ask_int("Effort cost (1-5, Enter=3): ", 1, 5, default=3)
 
-            if score >= 65:
-                rec = "Lean toward doing it."
-            elif score >= 45:
-                rec = "Borderline. Try a small test first."
+            reasons_a = {}
+            reasons_b = {}
+
+            if use_ai == "yes":
+                values_a, values_b, reasons_a, reasons_b = ai_result
             else:
-                rec = "Lean toward not doing it or delaying."
+                values_a = {
+                    "urgency": a_urgency,
+                    "importance": a_importance,
+                    "long_term_value": a_value,
+                    "effort": a_effort,
+                }
+                values_b = {
+                    "urgency": b_urgency,
+                    "importance": b_importance,
+                    "long_term_value": b_value,
+                    "effort": b_effort,
+                }
 
-            breakdown_lines, top_line = build_breakdown(contrib, values)
+            contrib_a = compute_contrib(values_a)
+            contrib_b = compute_contrib(values_b)
+
+            score_a = clamp(sum(contrib_a.values()))
+            score_b = clamp(sum(contrib_b.values()))
+
+            if score_a > score_b:
+                rec = f"Choose Task A ({task_a})."
+            elif score_b > score_a:
+                rec = f"Choose Task B ({task_b})."
+            else:
+                rec = "Both tasks are equally balanced. Try a small test of either."
+
+            breakdown_a, top_a = build_breakdown(contrib_a, values_a)
+            breakdown_b, top_b = build_breakdown(contrib_b, values_b)
 
             print("\n" + "=" * 30)
             print("RESULT")
-            print(f"Score: {score}/100")
-            print(f"Recommendation: {rec}")
-            print("Why (score breakdown)")
-            for line in breakdown_lines:
+            print(f"Task A score: {score_a}/100")
+            for line in breakdown_a:
                 print(" - " + line)
-            print(top_line)
+            print(top_a)
+
+            print(f"\nTask B score: {score_b}/100")
+            for line in breakdown_b:
+                print(" - " + line)
+            print(top_b)
+
+            if use_ai == "yes":
+                print("\nAI quick reasons (Task A):")
+                for k in ["urgency", "importance", "long_term_value", "effort"]:
+                    if k in reasons_a:
+                        print(f" - {k}: {reasons_a[k]}")
+                print("AI quick reasons (Task B):")
+                for k in ["urgency", "importance", "long_term_value", "effort"]:
+                    if k in reasons_b:
+                        print(f" - {k}: {reasons_b[k]}")
+
+            print("\nRecommendation:")
+            print(rec)
             print("=" * 30 + "\n")
 
             record = (
                 f"\n[{timestamp}] NEW DECISION\n"
-                f"Decision: {decision}\n"
-                f"Options: {options}\n"
-                f"Goal: {goal}\n"
-                f"Concern: {concern}\n"
-                f"Ratings: impact={impact}, cost={cost}, risk={risk}, reversible={reversible}\n"
-                f"Score: {score}/100\n"
+                f"Task A: {task_a}\n"
+                f"Task B: {task_b}\n"
+                f"Time left: {time_left}\n"
+                f"Energy: {energy}\n"
+                f"Scoring mode: {'AI' if use_ai == 'yes' else 'Manual'}\n"
+                f"Score A: {score_a}/100\n"
+                f"Score B: {score_b}/100\n"
                 f"Recommendation: {rec}\n"
-                "Breakdown:\n"
-                + "\n".join(["- " + x for x in breakdown_lines])
-                + "\n"
-                + top_line
-                + "\n"
             )
 
             save(record)
